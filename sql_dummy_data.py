@@ -61,8 +61,15 @@ cpt_codes = pd.read_csv("https://gist.githubusercontent.com/lieldulev/439793dc3c
 cpt_codes_1k = cpt_codes.sample(n=1000, random_state=1)
 # drop duplicates from cpt_codes_1k
 cpt_codes_1k = cpt_codes_1k.drop_duplicates(subset=['com.medigy.persist.reference.type.clincial.CPT.code'], keep='first')
+cpt_codes_1k.to_csv('cpt_codes')
 
 
+# create real loinc codes
+loinc_codes = pd.read_csv("data\Loinc.csv")
+loinc_codes_short = loinc_codes[['LOINC_NUM', 'LONG_COMMON_NAME']]
+loinc_codes_1k = loinc_codes_short.sample(n=1000, random_state=1)
+# drop duplicates from cpt_codes_1k
+loinc_codes_1k = loinc_codes_1k.drop_duplicates(subset=['LOINC_NUM'], keep='first')
 
 
 #### Insert Fake Patients ####
@@ -76,7 +83,7 @@ for index, row in df_fake_patients.iterrows():
     print("inserted row: ", index) # to show progress
 
 # # query dbs to see if data is there
-df_gcp = pd.read_sql_query("SELECT * FROM production_patients", db)
+df_gcp = pd.read_sql_query("SELECT * FROM patients", db)
 
 
 
@@ -94,7 +101,7 @@ for index, row in icd10codesShort_1k.iterrows():
         break
 
 # query dbs to see if data is there
-df = pd.read_sql_query("SELECT * FROM production_conditions", db)
+df = pd.read_sql_query("SELECT * FROM conditions", db)
 
 
 
@@ -103,16 +110,16 @@ df = pd.read_sql_query("SELECT * FROM production_conditions", db)
 insertQuery = "INSERT INTO medications (med_ndc, med_human_name) VALUES (%s, %s)"
 
 startingRow = 0
-for index, row in icd10codesShort_1k.iterrows():
+for index, row in ndc_codes_1k.iterrows():
     startingRow += 1
-    db.execute(insertQuery, (row['CodeWithSeparator'], row['ShortDescription']))
+    db.execute(insertQuery, (row['PRODUCTNDC'], row['NONPROPRIETARYNAME']))
     print("inserted row db: ", index)
     ## stop once we have 100 rows
     if startingRow == 100:
         break
 
 # query dbs to see if data is there
-df = pd.read_sql_query("SELECT * FROM production_conditions", db)
+df = pd.read_sql_query("SELECT * FROM medications", db)
 
 
 #### Insert treatments/procedures/cpt codes ####
@@ -130,3 +137,21 @@ for index, row in cpt_codes_1k.iterrows():
 
 # query dbs to see if data is there
 df = pd.read_sql_query("SELECT * FROM treatments_procedures", db)
+
+
+
+#### Insert loinc codes ####
+
+insertQuery = "INSERT INTO social_determinants (social_determinants_description, loinc_codes) VALUES (%s, %s)"
+
+startingRow = 0
+for index, row in loinc_codes_1k.iterrows():
+    startingRow += 1
+    db.execute(insertQuery, (row['LONG_COMMON_NAME'], row['LOINC_NUM']))
+    print("inserted row db: ", index)
+    ## stop once we have 100 rows
+    if startingRow == 100:
+        break
+
+# query dbs to see if data is there
+df = pd.read_sql_query("SELECT * FROM social_determinants", db)

@@ -25,8 +25,7 @@ db = create_engine(connection_string)
 fake = Faker()
 fake_patients = [
     {
-        #keep just the first 8 characters of the uuid
-        'mrn': str(uuid.uuid4())[:8], 
+        'mrn': str(uuid.uuid4())[:8],  #keep the first 8 characters of the uuid
         'first_name':fake.first_name(), 
         'last_name':fake.last_name(),
         'zip_code':fake.zipcode(),
@@ -36,7 +35,8 @@ fake_patients = [
         'contact_home':fake.phone_number()
     } for x in range(50)]
 
-df_fake_patients = pd.DataFrame(fake_patients) # put fake data into df to make it mor readable
+# put fake data into df to make it more readable
+df_fake_patients = pd.DataFrame(fake_patients)
 # drop duplicate mrn in case 
 df_fake_patients = df_fake_patients.drop_duplicates(subset=['mrn'])
 
@@ -45,16 +45,16 @@ df_fake_patients = df_fake_patients.drop_duplicates(subset=['mrn'])
 ######### create real ICD10 CODES ###########
 icd10codes = pd.read_csv('https://raw.githubusercontent.com/Bobrovskiy/ICD-10-CSV/master/2020/diagnosis.csv')
 list(icd10codes.columns)
-icd10codesShort = icd10codes[['CodeWithSeparator', 'ShortDescription']]
-icd10codesShort_1k = icd10codesShort.sample(n=1000)
-# drop duplicates
+icd10codesShort = icd10codes[['CodeWithSeparator', 'ShortDescription']] # make smaller df with columns of interest
+icd10codesShort_1k = icd10codesShort.sample(n=1000) # random sample 1k rows
+# drop duplicates from icd10codesShort_1k
 icd10codesShort_1k = icd10codesShort_1k.drop_duplicates(subset=['CodeWithSeparator'], keep='first')
 
 
 
 ######### create real NDC CODES ###########
 ndc_codes = pd.read_csv('https://raw.githubusercontent.com/hantswilliams/FDA_NDC_CODES/main/NDC_2022_product.csv')
-ndc_codes_1k = ndc_codes.sample(n=1000, random_state=1)
+ndc_codes_1k = ndc_codes.sample(n=1000, random_state=1) # random sample 1k rows
 # drop duplicates from ndc_codes_1k
 ndc_codes_1k = ndc_codes_1k.drop_duplicates(subset=['PRODUCTNDC'], keep='first')
 
@@ -62,7 +62,7 @@ ndc_codes_1k = ndc_codes_1k.drop_duplicates(subset=['PRODUCTNDC'], keep='first')
 
 ######### create real CPT CODES ###########
 cpt_codes = pd.read_csv("https://gist.githubusercontent.com/lieldulev/439793dc3c5a6613b661c33d71fdd185/raw/25c3abcc5c24e640a0a5da1ee04198a824bf58fa/cpt4.csv")
-cpt_codes_1k = cpt_codes.sample(n=1000, random_state=1)
+cpt_codes_1k = cpt_codes.sample(n=1000, random_state=1) # random sample 1k rows
 # drop duplicates from cpt_codes_1k
 cpt_codes_1k = cpt_codes_1k.drop_duplicates(subset=['com.medigy.persist.reference.type.clincial.CPT.code'], keep='first')
 
@@ -70,8 +70,8 @@ cpt_codes_1k = cpt_codes_1k.drop_duplicates(subset=['com.medigy.persist.referenc
 
 ######### create real LOINC CODES ###########
 loinc_codes = pd.read_csv("data\Loinc.csv")
-loinc_codes_short = loinc_codes[['LOINC_NUM', 'LONG_COMMON_NAME']]
-loinc_codes_1k = loinc_codes_short.sample(n=1000, random_state=1)
+loinc_codes_short = loinc_codes[['LOINC_NUM', 'LONG_COMMON_NAME']] # make smaller df with columns of interest
+loinc_codes_1k = loinc_codes_short.sample(n=1000, random_state=1) # random sample 1k rows
 # drop duplicates from cpt_codes_1k
 loinc_codes_1k = loinc_codes_1k.drop_duplicates(subset=['LOINC_NUM'], keep='first')
 
@@ -80,6 +80,7 @@ loinc_codes_1k = loinc_codes_1k.drop_duplicates(subset=['LOINC_NUM'], keep='firs
 
 ######### INSERT FAKE PATIENTS ###########
 
+# query has the column names and then values as wildcards
 insertQuery = "INSERT INTO patients (mrn, first_name, last_name, zip_code, dob, gender, contact_mobile, contact_home) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
 
 for index, row in df_fake_patients.iterrows():
@@ -87,8 +88,8 @@ for index, row in df_fake_patients.iterrows():
     db.execute(insertQuery, (row['mrn'], row['first_name'], row['last_name'], row['zip_code'], row['dob'], row['gender'], row['contact_mobile'], row['contact_home']))
     print("inserted row: ", index) # to show progress
 
-# # query dbs to see if data is there
-df_gcp = pd.read_sql_query("SELECT * FROM patients", db)
+# query dbs to see if data is there
+df = pd.read_sql_query("SELECT * FROM patients", db)
 
 
 
@@ -166,7 +167,7 @@ df = pd.read_sql_query("SELECT * FROM social_determinants", db)
 
 ######### INSERT FAKE PATIENT CONDITIONS ###########
 
-# first, lets query conditions and patients to get the ids
+# query conditions and patients to get the ids
 df_conditions = pd.read_sql_query("SELECT icd10_code FROM conditions", db)
 df_patients = pd.read_sql_query("SELECT mrn FROM patients", db)
 
@@ -184,7 +185,7 @@ for index, row in df_patients.iterrows():
 
 print(df_patient_conditions.head(20))
 
-# now lets add a random condition to each patient
+# add a random condition to each patient
 insertQuery = "INSERT INTO patient_conditions (mrn, icd10_code) VALUES (%s, %s)"
 
 for index, row in df_patient_conditions.iterrows():
@@ -194,8 +195,7 @@ for index, row in df_patient_conditions.iterrows():
 
 
 
-#### Make fake patient medications ####
-
+######### INSERT FAKE PATIENT MEDICATIONS ###########
 
 df_medications = pd.read_sql_query("SELECT med_ndc FROM medications", db) 
 df_patients = pd.read_sql_query("SELECT mrn FROM patients", db)
@@ -215,7 +215,6 @@ for index, row in df_patients.iterrows():
 
 print(df_patient_medications.head(10))
 
-# now lets add a random medication to each patient
 insertQuery = "INSERT INTO patient_medications (mrn, med_ndc) VALUES (%s, %s)"
 
 for index, row in df_patient_medications.iterrows():

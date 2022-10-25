@@ -17,6 +17,9 @@ db = create_engine(connection_string)
 
 tableNames = db.table_names()
 
+
+# create desired tables. name / type / arugments like default, null, unique, etc
+
 table_patients = """
 create table if not exists patients (
     id int auto_increment,
@@ -69,11 +72,36 @@ create table IF NOT EXISTS social_determinants (
   );
   """
 
+
+table_patient_medications = """
+create table if not exists patient_medications (
+    id int auto_increment,
+    mrn varchar(255) default null,
+    med_ndc varchar(255) default null,
+    PRIMARY KEY (id),
+    FOREIGN KEY (mrn) REFERENCES patients(mrn) ON DELETE CASCADE,
+    FOREIGN KEY (med_ndc) REFERENCES medications(med_ndc) ON DELETE CASCADE
+); 
+"""
+
+table_patient_conditions = """
+create table if not exists patient_conditions (
+    id int auto_increment,
+    mrn varchar(255) default null,
+    icd10_code varchar(255) default null,
+    PRIMARY KEY (id),
+    FOREIGN KEY (mrn) REFERENCES patients(mrn) ON DELETE CASCADE,
+    FOREIGN KEY (icd10_code) REFERENCES conditions(icd10_code) ON DELETE CASCADE
+); 
+"""
+
+# execute queries
 db.execute(table_patients)
 db.execute(table_medications)
 db.execute(table_treatments_procedures)
 db.execute(table_conditions)
 db.execute(table_social_determinants)
+db.execute(table_patient_medications)
+db.execute(table_patient_conditions)
 
-
-tableNames = db.table_names()
+tableNames = db.table_names() # can see created tables now

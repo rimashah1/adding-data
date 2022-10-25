@@ -19,3 +19,9 @@ MYSQL_DATABASE = "inserthere"
 2. create fake data and import real data. clean data and select only columns of interest
 3. write insert into query
 4. use for loop to insert data into table. db.execute 
+
+# images folder
+This folder contains the ERD diagram and 5 sample queries of the database. Each image is labeled as per its content
+
+# data folder
+This folder contains the LOINC data which was retrieved from https://loinc.org/downloads/
